@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vision Board Slider</title>
+  <style id="sharedStyle">
+    .fullscreen-wrap{position: fixed;}
+    .fullscreen-view{
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      background: #444444;
+      display: none;
+      top:0px;
+      left: 0px;
+    }
+    .slide-stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background-repeat: no-repeat;
+    }
+    .slide-stage span.txt{
+      width:100%;
+      display: block;
+      padding: 2% 5%;
+    }
+    .grow-button:hover{zoom:1.1;}
+  </style>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background:#d2d7e3; }
+    header { display: flex; justify-content: space-between; padding: 0.5rem; background: #eee; }
+    main { flex: 1; display: flex; }
+
+    .left, .right { width: 20%; padding: 1rem; overflow-y: auto; border-right: 1px solid #ccc; }
+    .center { flex: 1;}
+    h3{text-align: center; margin: 0px;}
+    .audio-controls{
+      text-align: left;
+      padding: 10px;
+      background: #8b8ba4;
+      color: white;
+      border-bottom: 3px solid blue;
+    }
+    #audioStart{
+      width: 50px;
+      height: 28px;
+    }
+    .preview-wrap, .slide-controls-wrap{
+      display: none;
+    }
+    .preview-wrap{
+      margin-right: 10px;
+    }
+    .file-label {
+      display: inline-block;
+      padding: 6px 12px;
+      background: #70c6e9;
+      border: 1px solid gray;
+      border-radius: 4px;
+      cursor: pointer;
+      color: black;
+    }
+    .image-file-label{
+      background: #f4e6e6;
+      float: right;
+      box-shadow: 5px 5px 8px #553e3e;
+    }
+
+    .preview { 
+      bottom: 1rem;
+      right: 1rem;
+      width: 640px;
+      height: 288px;
+      border: 1px solid #000;
+      background: #fafafa;
+      overflow: hidden;
+      display: flex;
+      margin: 10px 0px;
+      background-repeat: no-repeat;
+     }
+     .text-controls{
+        padding: 5px;
+        background: #8b8ba4;
+        border-radius: 5px;
+        margin: 10px;
+     }
+     @media (max-width: 1000px) {
+        .preview { 
+            width: 360px;
+            height: 162px;
+        }
+    }
+    .preview-text{
+      width: 100%;
+      padding: 2% 5%;
+    }
+
+    .slide-controls {
+      display: flex;
+      flex-direction: column;
+      font-size: 18px;
+    }
+    .slide-controls input, .slide-controls select{
+      height: 30px;
+    }
+
+    ul#imageList { list-style: none; padding-left: 0; margin-top: 0.5rem; }
+    ul#imageList li { padding: 4px 6px; }
+    .left {
+
+        background: #8f8bab;
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh);
+        overflow-y: auto;
+    }
+
+    #exportButton{
+      font-size: 20px;
+      box-shadow: 5px 6px 5px #5b4242;
+      background: #c6e970;
+      border-radius: 6px;
+    }
+    #playBtn{
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      font-size: 32px;
+      box-shadow: 5px 6px 5px #5b4242;
+      background: #70c6e9;
+      border-radius: 6px;
+    }
+    #stopBtn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      padding: 0.5rem 1rem;
+      background: red;
+      color: white;
+      border: none;
+      font-size: 1rem;
+      display: none;
+      cursor: pointer;
+    }
+
+    .slide-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      outline: none;
+    }
+    .slide-card.selected {
+      border-color: #0077ff;
+      box-shadow: 0 0 0 2px rgba(0,119,255,.15);
+    }
+    .slide-thumb {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      border-radius: 6px;
+      background: #f3f3f3;
+    }
+    .slide-caption {
+      font-size: 12px;
+      line-height: 1.2;
+      color: #333;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .slide-thumb.placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #777;
+      border: 1px dashed #bbb;
+      background: #f9f9f9;
+    }
+
+    .add-btn {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      background: #fafafa;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      user-select: none;
+    }
+    .add-wrapper {
+      display: flex;
+      justify-content: center;
+      padding: 6px 0;
+    }
+
+    .preview-wrap{
+      float: right;
+    }
+    .controls-row{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .controls-row label{
+      padding: 4px 10px;
+      text-align: center;
+      display: block;
+    }
+
+    .text-field-label{
+      width: 100%;
+    }
+    .text-field-label input{
+      height: 30px;
+      width: 100%;
+    }
+    #textSize{
+      width: 55px;
+    }
+    .duration-label{
+      display: block;
+      width: 180px;
+      background: #8b8ba4;
+      padding: 10px;
+      text-align: center;
+      font-size: 20px;
+      border-radius: 3px;
+    }
+    #duration{
+      width: 70px;
+      font-size: 30px;
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="fullscreen-wrap" id="fullscreenWrap">
+    <button id="stopBtn">⏹ Stop</button>
+    <div class="fullscreen-view" id="fullscreenView"></div>
+  </div>
+  <style>
+    #applyUrlBtn, #chooseUploadBtn{font-size: 25px;}
+    #chooseUploadBtn{margin: 10px;}
+    #urlImagePreview img{
+      display: block;
+      max-width: 100%;
+      max-height: 200px;
+      margin: 10px auto;
+
+    }
+
+  </style>
+  <div id="imgSourceDialog" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:100000;">
+    <div style="background:#fff; padding:16px; width:320px; margin:10vh auto; max-height: 80vh; overflow: auto; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,.2);">
+      <h3 style="margin:0 0 12px;">Add Image Url</h3>
+      <div id="urlEntry">
+        <input id="imageUrlInput" type="text" placeholder="https://example.com/image.jpg" style="width:100%; padding:8px;"/>
+        <div style="display:flex; justify-content: end; gap:8px; margin-top:8px;">
+          <button id="applyUrlBtn" type="button">Use</button>
+        </div>
+
+        <div id="urlImagePreview" style="display: none;">
+
+        </div>
+      </div>
+      <hr />
+      <div style="text-align: center;">
+        OR
+        <br/>
+        <button id="chooseUploadBtn" type="button">Upload image</button>
+      </div>
+      <div style="display:flex; justify-content: end; gap:8px; margin-top:8px;">
+          <button id="chooseCancelBtn"  type="button">Cancel</button>
+        </div>
+      
+      <input type="file" id="replaceImageInput" accept="image/*" hidden />
+    </div>
+  </div>
+  <audio id="audioPlayer"></audio>
+  <header>
+    
+
+    <div class="main-setup">
+      <label>project name:<br/></label> <input type="text" id="sliderName" placeholder="Slider name..." value="my first vision board" />
+      <label for="loadConfig" class="file-label">Load project</label><input type="file" id="loadConfig" accept="application/json" hidden />
+      <button id="saveConfig">💾 Save Project</button>
+      <button id="exportButton">Export</button>
+    </div>
+
+
+    <button id="playBtn" class="grow-button">▶ Play</button>
+  </header>
+
+  <main>
+    <div class="left">
+      <h3>Slide list</h3>
+      <button id="addSlideBtn" class="grow-button">＋ Add Slide</button>
+      <ul id="imageList"></ul>
+    </div>
+
+    <div class="center">
+      <div class="audio-controls">
+        <label class="file-label" for="audioInput">select song:</label> <small id="audioFileNameDisplay">(no song)</small><input type="file" id="audioInput" accept="audio/*" hidden />
+        &nbsp;
+        <label>Song start:
+          <input type="number" id="audioStart" value="0" min="0" />(s)
+        </label>
+      </div>
+      
+      <div class="preview-wrap" id="previewBoxWrap">
+        
+        <div class="preview" id="previewBox">
+          <div class="preview-text" id="previewText"></div>
+        </div>
+        <button id="replaceImageBtn" class="file-label image-file-label grow-button" type="button">Replace Image</button>
+        <br/><br/>
+        <label class="duration-label"> Duration(s): <br/><input type="number" id="duration" value="5" /></label>
+      </div>
+      <div class="slide-controls-wrap" id="slidecontrolsWrap">
+
+      
+        <div class="slide-controls">
+          <div class="controls-row">  
+            <label>
+              Fit Mode:
+              <br/>
+              <select id="imgFitMode">
+                <option value="contain">Contain</option>
+                <option value="cover-width">Fit Width</option>
+                <option value="cover-height">Fit Height</option>
+              </select>
+            </label>
+            <label>
+              Align X:
+              <br/>
+              <select id="imgAlignX">
+                <option value="center">Center</option>
+                <option value="left">Left</option>
+                <option value="right">Right</option>
+              </select>
+            </label>
+
+            <label>
+              Align Y:
+              <br/>
+              <select id="imgAlignY">
+                <option value="center">Center</option>
+                <option value="top">Top</option>
+                <option value="bottom">Bottom</option>
+              </select>
+            </label>
+          </div>
+          <div class="controls-row">  
+            <label> background: <br/>
+                <input type="color" id="slideBGColor" value="#444444" /> 
+            </label>
+          </div>
+
+<div class="text-controls">
+
+  
+  <div class="controls-row">
+    <label class="text-field-label"> Text: <br/> <input type="text" id="slideText" /> </label>
+  </div>
+  <div class="controls-row">  
+    <label>Size(%):<br/> <input type="number" id="textSize" value="13" /> </label>
+    <label>
+      Align X: <br/>
+      <select id="textAlign">
+        <option value="left">Left</option>
+        <option value="center">Center</option>
+        <option value="right">Right</option>
+      </select>
+    </label>
+    <label>
+      Align Y: <br/>
+      <select id="textVAlign">
+        <option value="flex-start">Top</option>
+        <option value="center">Middle</option>
+        <option value="flex-end">Bottom</option>
+      </select>
+    </label>
+  </div>
+  <div class="controls-row">
+    <label>color: <br/><input type="color" id="textColor" value="#000000" /> </label>
+  </div>
+</div>
+  
+
+          
+        </div>
+       </div>
+      
+    </div>
+
+
+  </main>
+  <script>
+
+    // =============================
+    // DOM references
+    // =============================
+    const addSlideBtn = document.getElementById('addSlideBtn');
+    const imageList = document.getElementById('imageList');
+    const previewBoxWrap = document.getElementById('previewBoxWrap');
+    const previewBox = document.getElementById('previewBox');
+    const slidecontrolsWrap = document.getElementById('slidecontrolsWrap');
+    
+    const previewText = document.getElementById('previewText');
+
+    const saveConfig = document.getElementById('saveConfig');
+    const loadConfig = document.getElementById('loadConfig');
+
+    const exportButton = document.getElementById('exportButton');
+
+    const audioInput = document.getElementById('audioInput');
+
+    const audioStartInput = document.getElementById('audioStart');
+
+    const sliderNameInput = document.getElementById('sliderName');
+
+    const replaceImageInput = document.getElementById('replaceImageInput');
+    const audioFileNameDisplay = document.getElementById('audioFileNameDisplay');
+
+    const slideBGColor = document.getElementById('slideBGColor');
+
+    // Slide controls
+    const slideText = document.getElementById('slideText');
+    const textSize = document.getElementById('textSize');
+    const textColor = document.getElementById('textColor');
+    
+    const textAlign = document.getElementById('textAlign');
+    const textVAlign = document.getElementById('textVAlign');
+    const duration = document.getElementById('duration');
+
+    const imgFitMode = document.getElementById('imgFitMode');
+    const imgAlignX = document.getElementById('imgAlignX');
+    const imgAlignY = document.getElementById('imgAlignY');
+
+
+    const imgSourceDialog = document.getElementById('imgSourceDialog');
+    const chooseUploadBtn = document.getElementById('chooseUploadBtn');
+    const chooseCancelBtn = document.getElementById('chooseCancelBtn');
+
+    const urlEntry = document.getElementById('urlEntry');
+    const imageUrlInput = document.getElementById('imageUrlInput');
+    const applyUrlBtn = document.getElementById('applyUrlBtn');
+
+    const urlImagePreview = document.getElementById('urlImagePreview');
+    
+    const replaceImageBtn = document.getElementById('replaceImageBtn');
+    
+    replaceImageBtn.addEventListener('click', openImgSourceDialog);
+
+    chooseUploadBtn.addEventListener('click', () => {
+      replaceImageInput.value = '';   // allow re-selecting same file
+      replaceImageInput.click();
+    });
+
+    chooseCancelBtn.addEventListener('click', () => { closeImgSourceDialog(); });
+
+    // =============================
+    // State
+    // =============================
+    let slides = [];
+    let currentSlide = 0;
+
+    // audio (data URL only)
+    let audioDataUrl = '';    // persisted
+    let audioStart = 0;
+    // =============================
+    // Helpers
+    // =============================
+
+
+    function openImgSourceDialog() { imgSourceDialog.style.display = 'block'; }
+    function closeImgSourceDialog() { imgSourceDialog.style.display = 'none'; resetSourceDialogUrl(); }
+    function resetSourceDialogUrl() {
+      imageUrlInput.value = '';  
+      urlImagePreview.innerHTML = '';
+      urlImagePreview.style.display = 'none';
+    }
+
+    function updateUrlPreview(){
+      const url = (imageUrlInput.value || '').trim();
+
+      // reset
+      urlImagePreview.innerHTML = '';
+      if (!url) { urlImagePreview.style.display = 'none'; return; }
+
+      urlImagePreview.style.display = 'block';
+      urlImagePreview.textContent = 'Loading preview…';
+
+      const img = new Image();
+      img.alt = 'Image preview';
+      img.onload = () => {
+        urlImagePreview.innerHTML = '';
+        urlImagePreview.appendChild(img);
+      };
+      img.onerror = () => {
+        urlImagePreview.innerHTML = '<small style="color:#c00;">Failed to load image URL.</small>';
+      };
+
+      img.src = url;
+    }
+
+    let urlPreviewTimer;
+    imageUrlInput.addEventListener('input', () => {
+      clearTimeout(urlPreviewTimer);
+      urlPreviewTimer = setTimeout(updateUrlPreview, 300); // run after pause
+    });
+
+    applyUrlBtn.addEventListener('click', () => {
+      const val = (imageUrlInput.value || '').trim();
+      imageUrlInput.value = '';
+      if (!val) return;
+      if (!slides[currentSlide]) return;
+
+      slides[currentSlide].imageUrl = val;
+      rebuildImageListAndSelect(currentSlide);
+      closeImgSourceDialog();
+    });
+
+    function updateAudioNameUI() {
+      if (audioFileName) {
+        audioFileNameDisplay.textContent = audioFileName;
+      } else if (audioDataUrl) {
+        audioFileNameDisplay.textContent = '(embedded audio)';
+      } else {
+        audioFileNameDisplay.textContent = '(no audio)';
+      }
+    }
+
+    function createBlankSlide() {
+      return {
+        fitMode: 'contain',
+        alignX: 'center',
+        alignY: 'center',
+        text: '',
+        size: 13,
+        color: '#000000',
+        bgColor: '#444444',
+        textAlign: 'center',
+        textVAlign: 'flex-end',
+        duration: 5,
+        imageUrl: null,
+      };
+    }
+
+    function insertSlideAt(index) {
+      const clamped = Math.max(0, Math.min(index, slides.length));
+      const newSlide = createBlankSlide();
+      slides.splice(clamped, 0, newSlide);
+      rebuildImageListAndSelect(clamped);
+      openImgSourceDialog();
+    }
+
+    function makeAddButton(insertIndex, label = '＋') {
+      const li = document.createElement('li');
+      const wrapper = document.createElement('div');
+      wrapper.className = 'add-wrapper';
+      const btn = document.createElement('button');
+      btn.className = 'add-btn';
+      btn.setAttribute('aria-label', 'Add slide');
+      btn.textContent = label;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        insertSlideAt(insertIndex);
+      });
+      wrapper.appendChild(btn);
+      li.appendChild(wrapper);
+      return li;
+    }
+
+    audioStartInput.addEventListener('input', () => {
+      audioStart = parseFloat(audioStartInput.value) || 0;
+    });
+
+
+    function rebuildImageListAndSelect(selectIndex = 0) {
+      imageList.innerHTML = '';
+      const count = slides.length;
+      if (count === 0) {
+        hideSlideMain();
+        previewText.textContent = "";
+        return;
+      }
+
+      const idx = Math.max(0, Math.min(selectIndex, count - 1));
+
+      slides.forEach((s, i) => {
+        if (i === idx) imageList.appendChild(makeAddButton(i, '＋'));
+
+        const li = document.createElement('li');
+        const card = document.createElement('div');
+        card.className = 'slide-card';
+        card.tabIndex = 0;
+        card.dataset.index = i;
+
+        // Thumbnail from data URL only
+        let thumbEl;
+        if (s.imageUrl) {
+          const img = document.createElement('img');
+          img.className = 'slide-thumb';
+          img.src = s.imageUrl;
+          thumbEl = img;
+        } else {
+          const ph = document.createElement('div');
+          ph.className = 'slide-thumb placeholder';
+          ph.textContent = 'No image';
+          thumbEl = ph;
+        }
+
+        // Caption from text only
+        const caption = document.createElement('div');
+        caption.className = 'slide-caption';
+        caption.textContent = (s.text && s.text.trim()) ? s.text : '(untitled)';
+
+        const selectThis = () => {
+          imageList.querySelectorAll('.slide-card').forEach(el => el.classList.remove('selected'));
+          card.classList.add('selected');
+          loadSlide(i);
+          // Rebuild to move inline "+" buttons with new selection
+          rebuildImageListAndSelect(i);
+        };
+        card.addEventListener('click', selectThis);
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectThis();
+          }
+        });
+
+        card.appendChild(thumbEl);
+        card.appendChild(caption);
+        if (i === idx){
+
+          const deleteSlide = () => {
+            if(confirm("delete slide?")){
+              deleteCurrentSlide();
+            }
+          };
+          const deleteButton = document.createElement('button');
+          deleteButton.innerHTML = "🗑 Delete Slide";
+          deleteButton.addEventListener('click', deleteSlide);
+          card.appendChild(deleteButton);
+        }
+        li.appendChild(card);
+        imageList.appendChild(li);
+
+        if (i === idx) imageList.appendChild(makeAddButton(i + 1, '＋'));
+      });
+
+      const cardToSelect = imageList.querySelector(`.slide-card[data-index="${idx}"]`);
+      if (cardToSelect) {
+        cardToSelect.classList.add('selected');
+        loadSlide(idx);
+      }
+    }
+
+
+    exportButton.addEventListener('click',exportToVisionboard);
+
+    // =============================
+    // Slide <-> UI binding
+    // =============================
+    function loadSlide(index) {
+
+      currentSlide = index;
+      const s = slides[index];
+
+      imgFitMode.value = s.fitMode || 'contain';
+      imgAlignX.value = s.alignX || 'center';
+      imgAlignY.value = s.alignY || 'center';
+      slideBGColor.value = s.bgColor || '#444444';
+      
+      slideText.value = s.text || '';
+      textSize.value = s.size ?? 13;
+      textColor.value = s.color || '#000000';
+
+      textAlign.value = s.textAlign || 'center';
+      textVAlign.value = s.textVAlign || 'flex-end';
+
+      duration.value = s.duration ?? 5;
+
+      showPreview(s);
+    }
+
+
+    function updateSlideFromUI(index) {
+      const s = slides[index];
+      if (!s) return;
+
+      s.fitMode = imgFitMode.value;
+      s.alignX = imgAlignX.value;
+      s.alignY = imgAlignY.value;
+
+      s.bgColor = slideBGColor.value;
+      s.text = slideText.value;
+      s.size = parseInt(textSize.value, 10);
+      s.color = textColor.value;
+      s.textAlign = textAlign.value;
+      s.textVAlign = textVAlign.value;
+
+      s.duration = parseFloat(duration.value);
+
+      showPreview(s);
+      updateSlideCardCaption(index);
+    }
+
+    function updateSlideCardCaption(index) {
+      const card = imageList.querySelector(`.slide-card[data-index="${index}"]`);
+      if (!card) return;
+      const caption = card.querySelector('.slide-caption');
+      if (!caption) return;
+
+      const s = slides[index];
+      caption.textContent = (s.text && s.text.trim()) ? s.text : '(untitled)';
+    }
+
+
+  function hideSlideMain(){
+    previewBoxWrap.style.display = 'none';
+    slidecontrolsWrap.style.display = 'none';
+  }
+  function showSlideMain(){
+    previewBoxWrap.style.display = 'block';
+    slidecontrolsWrap.style.display = 'block';
+  }
+    // =============================
+    // UI: Add/Delete/Replace
+    // =============================
+    addSlideBtn.addEventListener('click', () => insertSlideAt(slides.length));
+
+    function deleteCurrentSlide(){
+      if (!slides.length) return;
+      slides.splice(currentSlide, 1);
+      if (slides.length === 0) {
+        imageList.innerHTML = '';
+        hideSlideMain();
+        return;
+      }
+      rebuildImageListAndSelect(Math.max(0, currentSlide - 1));
+    }
+
+    replaceImageInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file || !slides[currentSlide]) {
+        replaceImageInput.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const s = slides[currentSlide];
+        s.imageUrl = reader.result;   // persisted
+        rebuildImageListAndSelect(currentSlide);
+        closeImgSourceDialog();
+      };
+      reader.readAsDataURL(file);
+      replaceImageInput.value = '';
+
+    });
+
+    document
+      .querySelectorAll('.slide-controls input, .slide-controls select')
+      .forEach((el) => {
+        el.addEventListener('input', () => updateSlideFromUI(currentSlide));
+      });
+
+    // =============================
+    // Audio handling (Data URL only)
+    // =============================
+    audioInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      audioFileName = file.name;     // <- store name for display
+      updateAudioNameUI();           // <- update UI
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        audioDataUrl = reader.result || '';
+        if (audioDataUrl) {
+          audioPlayer.src = audioDataUrl;
+        } else {
+          audioPlayer.removeAttribute('src');
+        }
+        // ensure UI shows something even if name is empty (shouldn't happen here)
+        updateAudioNameUI();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // =============================
+    // Save (Data URLs only)
+    // =============================
+    
+    // --- Shared: build one JSON object for Save and Export ---
+    async function buildProjectData() {
+      // slides already hold data URLs; just drop any leftover runtime fields defensively
+      const slidesWithData = slides || [];
+
+      return {
+        slides: slidesWithData,
+        audioStart: Number(audioStart) || 0,
+        audioDataUrl: audioDataUrl || '',
+        audioFileName: audioFileName || ''
+      };
+    }
+
+    saveConfig.addEventListener('click', async () => {
+      const sliderName = sliderNameInput.value.trim();
+      if (!sliderName) {
+        alert('Please enter a slider name first.');
+        return;
+      }
+
+      const projectData = await buildProjectData();               // <-- reuse
+      const data = JSON.stringify(projectData);
+
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: `${sliderName}.json`,
+            types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }],
+          });
+          const writable = await handle.createWritable();
+          await writable.write(data);
+          await writable.close();
+          alert('Project saved successfully.');
+          return;
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+        }
+      }
+
+      const blob = new Blob([data], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${sliderName}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    // =============================
+    // Load (Data URLs only)
+    // =============================
+    loadConfig.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const config = JSON.parse(reader.result);
+          if (!Array.isArray(config.slides)) {
+            throw new Error('Invalid project file: missing slides array');
+          }
+
+          slides = (config.slides || []).map(s => ({
+            ...s,
+            imageUrl: s.imageUrl || null
+          }));
+
+          currentSlide = 0;
+
+          audioDataUrl = config.audioDataUrl || '';
+          audioPlayer.src = audioDataUrl || '';
+          audioStart = Number(config.audioStart) || 0; 
+          audioStartInput.value = audioStart;
+
+          audioFileName = config.audioFileName || '';
+          updateAudioNameUI();
+
+
+          const sliderName = file.name.replace(/\.json$/, '');
+          sliderNameInput.value = sliderName;
+
+          rebuildImageListAndSelect(0);
+
+        } catch (err) {
+          alert('Failed to load project: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+
+async function exportToVisionboard() {
+  const sliderName = (sliderNameInput.value || 'project').trim() || 'project';
+
+  // 1) Build the same JSON used by Save
+  const projectData = await buildProjectData();
+
+  // 2) Make the JSON safe for <script> embedding
+  const safeJson = JSON.stringify(projectData)
+    .replace(/</g, '\\u003C')
+    .replace(/<\/script>/gi, '<\\/script>');
+
+  // 3) Get the template HTML
+  const tplEl = document.getElementById('exportTemplate');
+  if (!tplEl) {
+    alert('Export template not found.');
+    return;
+  }
+  let htmlSrc = tplEl.innerHTML;
+
+  // 4) Pull in shared STYLE and JS (the content INSIDE your tags)
+  const sharedStyle = (document.getElementById('sharedStyle')?.textContent || '').trim();
+  const sharedFn = (document.getElementById('sharedFunctionality')?.textContent || '').trim();
+
+  // 5) Fill placeholders INSIDE the template
+  //    (a) JSON + exported vars
+  // (a) put raw JSON into the JSON script tag
+  htmlSrc = htmlSrc.replace('JSON_DATA_PLACEHOLDER', safeJson);
+
+  // (b) shared functionality + style stay as-is
+  htmlSrc = htmlSrc.replace('FUNCTIONALITY_PLACEHOLDER', sharedFn);
+  htmlSrc = htmlSrc.replace('STYLE_PLACEHOLDER', sharedStyle);
+
+  // 6) Optionally set the <title> in the exported page to the slider name
+  const escTitle = sliderName.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+
+  // 7) Serialize with DOCTYPE and save
+  const finalHtml = '<!DOCTYPE html>\n' + htmlSrc;
+  const blob = new Blob([finalHtml], { type: 'text/html' });
+
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: `${sliderName}-export.html`,
+        types: [{ description: 'HTML Files', accept: { 'text/html': ['.html', '.htm'] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      alert('Exported HTML created.');
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return; // user canceled
+      // fall through to link fallback
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${sliderName}-export.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+    
+  </script>
+<script id="sharedFunctionality">
+
+    let audioFileName = '';  // display-only; saved to config
+
+    const fullscreenView = document.getElementById('fullscreenView');
+    const fullscreenWrap = document.getElementById('fullscreenWrap');
+
+    const playBtn = document.getElementById('playBtn');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const stopBtn = document.getElementById('stopBtn');
+
+    let isPaused = false;
+    let pausedIndex = 0;
+    let slideTimeout = null;
+    let currentSlideAudioTime = 0;
+
+    function isMobile() {
+      return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    }
+
+    function checkSlides(){
+      if(slides){
+        console.log(slides);
+      }
+    }
+
+
+    function bgPosPercent(base) {
+      // "left"|"center"|"right" -> 0|50|100 ; "top"|"center"|"bottom" -> 0|50|100
+      if (base === 'left' || base === 'top') return 0;
+      if (base === 'right' || base === 'bottom') return 100;
+      return 50; // center
+    }
+
+    function computeBgPosition(alignX, alignY, offsetXpx, offsetYpx) {
+      const baseX = bgPosPercent(alignX);
+      const baseY = bgPosPercent(alignY);
+      const x = `calc(${baseX}% + ${offsetXpx || 0}px)`;
+      const y = `calc(${baseY}% + ${offsetYpx || 0}px)`;
+      return `${x} ${y}`;
+    }
+
+    function computeBgSize(fitMode) {
+      // contain -> contain; cover-width -> 100% auto; cover-height -> auto 100%
+      if (fitMode === 'cover-width') return '100% auto';
+      if (fitMode === 'cover-height') return 'auto 100%';
+      return 'contain';
+    }
+
+    function scaledFontPxFromPercent(percent, containerEl) {
+      const rect = containerEl.getBoundingClientRect();
+      const basis = Math.min(rect.width || 0, rect.height || 0);
+      // percent is like 13 => 13% of basis
+      const px = (Number(percent) || 0) / 100 * basis;
+      return Math.max(1, Math.round(px));
+    }
+
+
+    // =============================
+    // Playback
+    // =============================
+    function clearSlideTimeout() {
+      if (slideTimeout) {
+        clearTimeout(slideTimeout);
+        slideTimeout = null;
+      }
+    }
+
+    function fadeOutAudio(duration = 2000) {
+      if (!audioPlayer || !audioPlayer.src) return;
+      let step = audioPlayer.volume / (duration / 50);
+      const fadeInterval = setInterval(() => {
+        audioPlayer.volume = Math.max(0, audioPlayer.volume - step);
+        if (audioPlayer.volume <= 0) {
+          clearInterval(fadeInterval);
+          audioPlayer.pause();
+          audioPlayer.volume = 1;
+        }
+      }, 50);
+    }
+
+    function togglePause() {
+      if (!slides.length) return;
+      if (isPaused) {
+        stopBtn.style.display = 'none';
+        isPaused = false;
+        if (audioPlayer.src) audioPlayer.play();
+        playSlides(pausedIndex);
+      } else {
+        audioPlayer.currentTime = currentSlideAudioTime;
+        stopBtn.style.display = 'block';
+        isPaused = true;
+        if (audioPlayer.src) audioPlayer.pause();
+        clearSlideTimeout();
+      }
+    }
+
+    fullscreenView.addEventListener('click', togglePause);
+
+    function endPlaybackCleanup() {
+      fullscreenView.style.display = 'none';
+      fullscreenView.innerHTML = '';
+      stopBtn.style.display = 'none';
+      if (audioPlayer.src) audioPlayer.pause();
+      audioPlayer.currentTime = 0;
+      isPaused = false;
+      clearSlideTimeout();
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      }
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (!slides.length) return;
+
+      fullscreenView.innerHTML = '';
+      fullscreenView.style.display = 'flex';
+      stopBtn.style.display = 'none';
+      isPaused = false;
+      clearSlideTimeout();
+
+      if (audioDataUrl) {
+        audioPlayer.src = audioDataUrl;
+        audioPlayer.pause();
+        audioPlayer.currentTime = audioStart;
+        audioPlayer.play();
+      }
+
+      playSlides(0);
+
+      if (fullscreenWrap.requestFullscreen) {
+        fullscreenWrap.requestFullscreen();
+      }
+    });
+    stopBtn.addEventListener('click', endPlaybackCleanup);
+
+    function playSlides(index) {
+      if (index >= slides.length) {
+        endPlaybackCleanup();
+        return;
+      }
+      if (isPaused) {    
+        return;
+      }
+
+      currentSlideAudioTime = audioPlayer.currentTime;
+
+      pausedIndex = index;
+      if (index === slides.length - 1) {
+        fadeOutAudio(3000); // fade out during last slide
+      }
+
+      fullscreenView.innerHTML = '';
+      const s = slides[index];
+
+      // Stage with background image
+      const stage = document.createElement('div');
+      stage.className = 'slide-stage';
+      stage.style.width = '100%';
+      stage.style.height = '100%';
+      stage.style.position = 'relative';
+      stage.style.display = 'flex';
+
+      if (s.imageUrl) {
+        stage.style.backgroundImage = `url(${s.imageUrl})`;
+        stage.style.backgroundSize = computeBgSize(s.fitMode);
+        stage.style.backgroundPosition = computeBgPosition(s.alignX, s.alignY);
+        stage.style.backgroundColor = s.bgColor;
+      } else {
+        stage.style.backgroundImage = '';
+      }
+
+      // Text overlay
+      const txt = document.createElement('span');
+      txt.textContent = s.text || '';
+      txt.classList.add('txt');
+      txt.style.textAlign = s.textAlign || 'right';
+      txt.style.alignSelf = s.textVAlign || 'flex-end';
+      txt.style.color = s.color || '#000';
+      txt.style.fontSize = scaledFontPxFromPercent(s.size || 13, fullscreenView) + 'px';
+      stage.appendChild(txt);
+      fullscreenView.appendChild(stage);
+
+
+      clearSlideTimeout();
+      slideTimeout = setTimeout(() => playSlides(index + 1), (s.duration || 5) * 1000);
+    }
+
+    function showPreview(slide) {
+      const fitMode = slide.fitMode;
+      const alignX = slide.alignX;
+      const alignY = slide.alignY;
+
+      if (slide.imageUrl) {
+        previewBox.style.backgroundImage = `url(${slide.imageUrl})`;
+        previewBox.style.backgroundSize = computeBgSize(fitMode);
+        previewBox.style.backgroundPosition = computeBgPosition(alignX, alignY);
+        previewBox.style.backgroundColor = slide.bgColor;
+      } else {
+        previewBox.style.backgroundImage = '';
+      }
+
+      previewText.textContent = slide.text || '';  
+      previewText.style.fontSize = scaledFontPxFromPercent(slide.size || 13, previewBox) + 'px';
+      previewText.style.color = slide.color || '#000';
+      previewText.style.textAlign = (slide.textAlign || 'center');
+      previewText.style.alignSelf = (slide.textVAlign || 'flex-end');
+
+      if (typeof showSlideMain === 'function') {
+        showSlideMain();
+      }
+    }
+</script>
+
+
+<template id="exportTemplate">
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Vision Board Export</title>
+      <style>
+        /* injected shared CSS */
+        STYLE_PLACEHOLDER
+
+        body {
+          font-family: system-ui, Arial, sans-serif;
+          margin: 0;
+          padding: 24px;
+          background: #fff;
+          color: #111;
+        }
+        .page-wrap {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 16px;
+        }
+        .preview {
+          position: relative;
+          width: 800px;
+          max-width: 90vw;
+          aspect-ratio: 40 / 18;
+          border: 1px solid #ccc;
+          background: #fafafa no-repeat center / contain;
+          display: flex;
+          align-items: stretch;
+          justify-content: stretch;
+          overflow: hidden;
+          border-radius: 8px;
+        }
+        .preview-text {
+          width: 100%;
+          padding: 2% 5%;
+          align-self: flex-end;
+          text-align: center;
+        }
+        #playBtn {
+          position: absolute;
+          inset: 0;
+          margin: auto;
+          width: 88px;
+          height: 88px;
+          border-radius: 50%;
+          border: none;
+          cursor: pointer;
+          font-size: 28px;
+          display: grid;
+          place-items: center;
+          background: #70c6e9;
+          color: #111;
+          box-shadow: 0 6px 18px rgba(0,0,0,.15);
+        }
+        #stopBtn {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          z-index: 10000;
+          padding: 0.5rem 1rem;
+          background: red;
+          color: white;
+          border: none;
+          font-size: 1rem;
+          display: none;
+          border-radius: 6px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="page-wrap">
+        <h1>Vision Board Export</h1>
+        <div class="preview" id="previewBox">
+          <div class="preview-text" id="previewText"></div>
+          <button id="playBtn" class="grow-button">▶</button>
+        </div>
+      </div>
+
+      <!-- fullscreen + audio -->
+      <div class="fullscreen-wrap" id="fullscreenWrap">
+        <button id="stopBtn">⏹ Stop</button>
+        <div class="fullscreen-view" id="fullscreenView"></div>
+      </div>
+      <audio id="audioPlayer"></audio>
+
+      <!-- Script #2: shared functions -->
+      <script id="functionsScript">
+        FUNCTIONALITY_PLACEHOLDER
+      </script>
+
+      <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          const el = document.getElementById('projectDataScript');
+          if (el) {
+            try {
+              const proj = JSON.parse(el.textContent || '{}');
+              window.slides = Array.isArray(proj.slides) ? proj.slides : [];
+              window.audioDataUrl = proj.audioDataUrl || '';
+              window.audioStart = Number.isFinite(proj.audioStart) ? proj.audioStart : 0;
+            } catch (e) {
+              console.error('Error parsing project JSON:', e);
+            }
+          }
+
+          if (Array.isArray(window.slides) && window.slides.length && typeof showPreview === 'function') {
+            showPreview(window.slides[0]);
+          }
+        });
+      </script>
+      <!-- Script #1: project data -->
+      <script id="projectDataScript" type="application/json">
+        JSON_DATA_PLACEHOLDER
+      </script>
+    </body>
+  </html>
+</template>
+
+
+</body>
+</html>
